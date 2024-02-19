@@ -1,0 +1,11 @@
+<schemalist gettext-domain="gnome-shell-extensions">
+  <schema id="org.gnome.shell.extensions.signalshell" path="/org/gnome/shell/extensions/signalshell/">
+    <key name="default-dark" type="b">
+      <default>false</default>
+      <summary>Change Default</summary>
+      <description>
+      </description>
+    </key>
+  </schema>
+</schemalist>
+

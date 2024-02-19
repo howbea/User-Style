@@ -33,7 +33,7 @@ function buildPrefsWidget() {
     });
     vbox.set_size_request(550, 350);
 let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL, margin_top: 5});
-    vbox.append(addItemSwitch("Load only default stylesheet", KEY_DEFDARK, settings));
+    vbox.append(addItemSwitch("Change default variant", KEY_DEFDARK, settings));
 
     widget.append(vbox); widget.append(hbox);
 
