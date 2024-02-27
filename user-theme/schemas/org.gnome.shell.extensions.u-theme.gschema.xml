@@ -1,0 +1,14 @@
+<schemalist gettext-domain="gnome-shell-extensions">
+  <schema id="org.gnome.shell.extensions.u-theme" path="/org/gnome/shell/extensions/u-theme/">
+    <key name="name" type="s">
+      <default>""</default>
+      <summary>Theme name</summary>
+      <description>The name of the theme, to be loaded from ~/.themes/name/gnome-shell</description>
+    </key>
+    <key type="b" name="default-light">
+      <default>false</default>
+      <summary>Default Light</summary>
+      <description>Default Light</description>
+    </key>
+  </schema>
+</schemalist>
