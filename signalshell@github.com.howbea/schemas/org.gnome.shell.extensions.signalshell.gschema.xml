@@ -1,11 +1,14 @@
 <schemalist gettext-domain="gnome-shell-extensions">
   <schema id="org.gnome.shell.extensions.signalshell" path="/org/gnome/shell/extensions/signalshell/">
+    <key name="name" type="s">
+      <default>""</default>
+      <summary>Theme name</summary>
+      <description>The name of the theme, to be loaded from ~/.themes/name/gnome-shell</description>
+    </key>
     <key name="default-dark" type="b">
       <default>false</default>
-      <summary>Change Default</summary>
-      <description>
-      </description>
+      <summary>Default Dark</summary>
+      <description>Set default theme variant dark</description>
     </key>
   </schema>
 </schemalist>
-
