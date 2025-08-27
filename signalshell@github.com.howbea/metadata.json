@@ -8,9 +8,10 @@
   "settings-schema": "org.gnome.shell.extensions.signalshell",
   "shell-version": [
     "45",
-    "46"
+    "46",
+    "47"
   ],
   "url": "https://github.com/howbea/Signal-Shell",
   "uuid": "signalshell@github.com.howbea",
-  "version": 10
+  "version": 11
 }
