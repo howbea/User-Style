@@ -1,97 +1,104 @@
-/* extension.js
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * SPDX-License-Identifier: GPL-2.0-or-later
- */
+// -*- mode: js2; indent-tabs-mode: nil; js2-basic-offset: 4 -*-
+// Load shell theme from ~/.local/share/themes/name/gnome-shell
 
-/* exported init */
+import Gio from 'gi://Gio';
+import St from 'gi://St';
 
-const { Gio, GLib, Pango, St } = imports.gi;
-const Main = imports.ui.main;
+import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-class Extension {
-    constructor() {
-    }    
-    _loadStyleheet() {    
-        if(this._sysa11yiSettings.get_boolean('high-contrast')) {
-            var stylesheetPath = GLib.build_filenamev(
-                [GLib.get_user_data_dir(), 'gnome-shell/theme', 'gnome-shell-high-contrast.css']
-            );
-        }
-        else if(!this._sysa11yiSettings.get_boolean('high-contrast') && this._sysiSettings.get_string('color-scheme') === 'prefer-dark') {
-            var stylesheetPath = GLib.build_filenamev(
-                [GLib.get_user_config_dir(), 'gnome-shell', 'gnome-shell-dark.css']
-            );
-        }
-        else if(!this._sysa11yiSettings.get_boolean('high-contrast') && this._sysiSettings.get_string('color-scheme') === 'default' && this._extSettings.get_boolean('default-dark')) {
-            var stylesheetPath = GLib.build_filenamev(
-                [GLib.get_user_config_dir(), 'gnome-shell', 'gnome-shell-dark.css']
-            );
-        }
-        else {
-            var stylesheetPath = GLib.build_filenamev(
-                [GLib.get_user_config_dir(), 'gnome-shell', 'gnome-shell-light.css']
-            );
-        }
-    
-        Main.setThemeStylesheet(stylesheetPath);
-        Main.loadTheme();
-    }
-    
-    _signalloadStyleheet() {
-        this.a11ysig = this._sysa11yiSettings.connect('changed::high-contrast', () => {
-            this._loadStyleheet();
-        });
-        this.isig = this._sysiSettings.connect('changed::color-scheme', () => {
-            this._loadStyleheet();
-        });
-        this.extsig = this._extSettings.connect('changed::default-dark', () => {
-            this._loadStyleheet();
-        });
-    }
-    
-    _unloadStyleheet() {
-        Main.setThemeStylesheet(null);
-        Main.loadTheme();
-    }
+import {getThemeDirs, getModeThemeDirs} from './util.js';
+
+const SETTINGS_KEY = 'name';
+
+export default class ThemeManager extends Extension {
 
     enable() {
-        this._sysa11yiSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.a11y.interface', });
-        this._sysiSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface', });
-        this._extSettings = ExtensionUtils.getSettings();
+        this._settings = this.getSettings();
+        this._changeTheme();
         
-        this._loadStyleheet();
-        this._signalloadStyleheet();    
+        
+        this._settings.connect(`changed::${SETTINGS_KEY}`, this._changeTheme.bind(this));        
+        this.a11ysig = St.Settings.get().connect('notify::high-contrast', () => {
+        this._changeTheme();
+         });
+        this.isig = St.Settings.get().connect('notify::color-scheme', () => {
+        this._changeTheme();
+        });
+        
+        this._savedColorScheme = Main.sessionMode.colorScheme;
+        if(this._settings.get_boolean('default-dark'))
+        this._updateColorScheme('prefer-dark');
+        else
+        this._updateColorScheme('prefer-light');
+        this._settings.connect('changed', () =>{ 
+        if(this._settings.get_boolean('default-dark'))
+        this._updateColorScheme('prefer-dark');
+        else
+        this._updateColorScheme('prefer-light'); 
+        });        
     }
 
     disable() {
-        //if(Main.sessionMode.currentMode !== 'unlock-dialog'){    
-        this._extSettings.disconnect(this.extsig);
-        this._extSettings = null;
-        this._sysa11yiSettings.disconnect(this.a11ysig);
-        this._sysa11yiSettings = null;
-        this._sysiSettings.disconnect(this.isig);
-        this._sysiSettings = null;
-        this._unloadStyleheet();    
-    //}
-    }
-}
+        this._settings = null;
+        St.Settings.get().disconnect(this.a11ysig);
+        St.Settings.get().disconnect(this.isig);
 
-function init() {
-    return new Extension();
+        Main.setThemeStylesheet(null);
+        Main.loadTheme();
+        
+        this._updateColorScheme(this._savedColorScheme);
+    }
+
+    _changeTheme() {
+        let stylesheet = null;
+        
+        let themeName = this._settings.get_string(SETTINGS_KEY);
+
+        if (themeName) {
+        if(St.Settings.get().high_contrast) {
+            var stylesheetPaths = getThemeDirs()
+                .map(dir => `${dir}/${themeName}/gnome-shell/gnome-shell-high-contrast.css`);
+            stylesheetPaths.push(...getModeThemeDirs()
+                .map(dir => `${dir}/${themeName}-high-contrast.css`));
+        }
+        else if(!St.Settings.get().high_contrast && St.Settings.get().color_scheme === St.SystemColorScheme.PREFER_LIGHT) {
+            var stylesheetPaths = getThemeDirs()
+                .map(dir => `${dir}/${themeName}/gnome-shell/gnome-shell-light.css`);
+            stylesheetPaths.push(...getModeThemeDirs()
+                .map(dir => `${dir}/${themeName}-light.css`));
+        }
+        else if(!St.Settings.get().high_contrast && Main.sessionMode.colorScheme === 'prefer-light' && St.Settings.get().color_scheme === St.SystemColorScheme.DEFAULT) {
+            var stylesheetPaths = getThemeDirs()
+                .map(dir => `${dir}/${themeName}/gnome-shell/gnome-shell-light.css`);
+            stylesheetPaths.push(...getModeThemeDirs()
+                .map(dir => `${dir}/${themeName}-light.css`));
+        }        
+        else {
+            var stylesheetPaths = getThemeDirs()
+                .map(dir => `${dir}/${themeName}/gnome-shell/gnome-shell-dark.css`);
+            stylesheetPaths.push(...getModeThemeDirs()
+                .map(dir => `${dir}/${themeName}-dark.css`));
+        }
+        
+            stylesheet = stylesheetPaths.find(path => {
+                let file = Gio.file_new_for_path(path);
+                return file.query_exists(null);
+            });
+                
+        }
+
+        if (stylesheet)
+            console.log(`loading user theme: ${stylesheet}`);
+        else
+            console.log('loading default theme (Adwaita)');
+        Main.setThemeStylesheet(stylesheet);
+        Main.loadTheme();
+    }
+    
+    _updateColorScheme(scheme) {
+        Main.sessionMode.colorScheme = scheme;
+        St.Settings.get().notify('color-scheme');
+    }
 }
